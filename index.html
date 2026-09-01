@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="id">
-const API_URL ='https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcdn5ETdrkr1FldK_Q-9eRhzFUBDnMhhwrz7u-ey1S_LQSpg/exec';
+
 
 <head>
 
@@ -16,6 +16,7 @@ const API_URL ='https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcd
   <script
     src="https://unpkg.com/html5-qrcode"
     type="text/javascript">
+const API_URL ='https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcdn5ETdrkr1FldK_Q-9eRhzFUBDnMhhwrz7uey1S_LQSpg/exec';
   </script>
 
   <style>
@@ -219,42 +220,47 @@ function setResult(text, type) {
  * START CAMERA
  * ==================================================
  */
-
 async function startCamera() {
 
   if (scanning) {
     return;
   }
 
-  if (
-    !window.isSecureContext
-  ) {
-
-    setResult(
-      'ERROR: Halaman scanner tidak menggunakan HTTPS.\n\n' +
-      'Buka scanner melalui alamat https://',
-      'error'
-    );
-
-    return;
-  }
-
-
-  if (
-    !navigator.mediaDevices ||
-    !navigator.mediaDevices.getUserMedia
-  ) {
-
-    setResult(
-      'Browser tidak menyediakan akses kamera.',
-      'error'
-    );
-
-    return;
-  }
-
+  setResult(
+    'Memulai pemeriksaan kamera...',
+    ''
+  );
 
   try {
+
+    // ==========================================
+    // 1. Pastikan HTTPS
+    // ==========================================
+
+    if (!window.isSecureContext) {
+
+      throw new Error(
+        'Halaman tidak berjalan dalam HTTPS.'
+      );
+
+    }
+
+
+    // ==========================================
+    // 2. Pastikan browser punya camera API
+    // ==========================================
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      throw new Error(
+        'Browser tidak menyediakan getUserMedia().'
+      );
+
+    }
+
 
     setResult(
       'Meminta izin kamera...',
@@ -262,9 +268,9 @@ async function startCamera() {
     );
 
 
-    /*
-     * Uji permission kamera terlebih dahulu.
-     */
+    // ==========================================
+    // 3. Minta kamera belakang
+    // ==========================================
 
     const stream =
       await navigator.mediaDevices.getUserMedia({
@@ -280,27 +286,61 @@ async function startCamera() {
       });
 
 
-    /*
-     * Setelah izin berhasil,
-     * hentikan stream percobaan.
-     */
+    console.log(
+      'Camera permission OK'
+    );
 
-    stream
-      .getTracks()
-      .forEach(
-        track => track.stop()
+
+    // ==========================================
+    // 4. Tampilkan informasi kamera
+    // ==========================================
+
+    const tracks =
+      stream.getVideoTracks();
+
+    console.log(
+      'Video tracks:',
+      tracks
+    );
+
+
+    if (tracks.length === 0) {
+
+      throw new Error(
+        'Browser memberikan stream tetapi tidak ada video track.'
       );
 
+    }
 
-    /*
-     * Buat scanner.
-     */
+
+    console.log(
+      'Camera label:',
+      tracks[0].label
+    );
+
+
+    // ==========================================
+    // 5. Hentikan stream percobaan
+    // ==========================================
+
+    tracks.forEach(
+      track => track.stop()
+    );
+
+
+    // ==========================================
+    // 6. Buat Html5Qrcode
+    // ==========================================
 
     scanner =
       new Html5Qrcode(
         'reader'
       );
 
+
+    // ==========================================
+    // 7. Jalankan scanner
+    // ==========================================
 
     await scanner.start(
 
@@ -327,11 +367,17 @@ async function startCamera() {
     );
 
 
+    // ==========================================
+    // 8. Berhasil
+    // ==========================================
+
     scanning = true;
+
 
     document
       .getElementById('startBtn')
       .disabled = true;
+
 
     document
       .getElementById('stopBtn')
@@ -339,28 +385,121 @@ async function startCamera() {
 
 
     setResult(
-      'Kamera aktif.\nArahkan kamera ke QR peserta.',
-      ''
+      'KAMERA AKTIF\n\n' +
+      'Arahkan kamera belakang ke QR peserta.',
+      'success'
     );
 
 
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      'CAMERA ERROR:',
+      error
+    );
+
+
+    // ==========================================
+    // Diagnostik lengkap
+    // ==========================================
+
+    let errorName =
+      'Tidak diketahui';
+
+    let errorMessage =
+      'Tidak diketahui';
+
+
+    if (error) {
+
+      if (error.name) {
+        errorName =
+          String(error.name);
+      }
+
+      if (error.message) {
+        errorMessage =
+          String(error.message);
+      }
+
+    }
+
+
+    // Beberapa browser/library bisa
+    // mengembalikan string langsung.
+
+    if (
+      typeof error === 'string'
+    ) {
+
+      errorMessage =
+        error;
+
+    }
+
+
+    // ==========================================
+    // Tampilkan diagnostik
+    // ==========================================
 
     setResult(
+
       'KAMERA GAGAL DIJALANKAN\n\n' +
-      'Nama error: ' +
-      error.name +
+
+      'Secure Context: ' +
+      window.isSecureContext +
       '\n\n' +
-      'Pesan: ' +
-      error.message,
+
+      'Hostname: ' +
+      location.hostname +
+      '\n\n' +
+
+      'Protocol: ' +
+      location.protocol +
+      '\n\n' +
+
+      'MediaDevices: ' +
+      (!!navigator.mediaDevices) +
+      '\n\n' +
+
+      'getUserMedia: ' +
+      (!!(
+        navigator.mediaDevices &&
+        navigator.mediaDevices.getUserMedia
+      )) +
+      '\n\n' +
+
+      'Error Name: ' +
+      errorName +
+      '\n\n' +
+
+      'Error Message: ' +
+      errorMessage,
+
       'error'
+
     );
+
+
+    scanning = false;
+
+    processing = false;
+
+
+    document
+      .getElementById('startBtn')
+      .disabled = false;
+
+
+    document
+      .getElementById('stopBtn')
+      .disabled = true;
 
   }
 
 }
+
+
 
 
 /*
