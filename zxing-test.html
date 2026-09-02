@@ -1,212 +1,144 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZXing QR Test</title>
 
-  <title>QR Scanner Test</title>
+  <script type="module">
+    import {
+      BrowserMultiFormatReader
+    } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
 
-<script src="https://unpkg.com/@zxing/browser@0.1.5/umd/index.min.js"></script>
-<script>
-  console.log("ZXingBrowser:", typeof ZXingBrowser);
-</script>
+    window.startZXing = async function () {
+      const result = document.getElementById("result");
+
+      try {
+        result.textContent = "Memulai kamera...";
+
+        const reader = new BrowserMultiFormatReader();
+
+        const devices =
+          await BrowserMultiFormatReader.listVideoInputDevices();
+
+        console.log("Camera devices:", devices);
+
+        if (!devices.length) {
+          throw new Error("Tidak ada kamera yang ditemukan.");
+        }
+
+        // Pilih kamera belakang jika tersedia
+        let camera = devices.find(d =>
+          /back|rear|environment/i.test(d.label)
+        );
+
+        if (!camera) {
+          camera = devices[devices.length - 1];
+        }
+
+        console.log("Selected camera:", camera);
+
+        result.textContent =
+          "Kamera aktif.\n\n" +
+          camera.label +
+          "\n\nArahkan kamera ke QR.";
+
+        window.zxingControls =
+          await reader.decodeFromVideoDevice(
+            camera.deviceId,
+            "video",
+            (scanResult, error) => {
+
+              if (scanResult) {
+                const text = scanResult.getText();
+
+                console.log("QR RESULT:", text);
+
+                result.textContent =
+                  "QR TERBACA!\n\n" + text;
+
+                if (window.zxingControls) {
+                  window.zxingControls.stop();
+                }
+              }
+            }
+          );
+
+      } catch (error) {
+        console.error(error);
+
+        result.textContent =
+          "GAGAL\n\n" +
+          "Name: " + (error.name || "unknown") +
+          "\n\nMessage: " +
+          (error.message || error);
+      }
+    };
+
+    window.stopZXing = function () {
+      try {
+        if (window.zxingControls) {
+          window.zxingControls.stop();
+          window.zxingControls = null;
+        }
+
+        document.getElementById("result").textContent =
+          "Scanner dihentikan.";
+      } catch (error) {
+        console.error(error);
+      }
+    };
+  </script>
 
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 16px;
-      text-align: center;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 15px;
     }
 
     video {
       width: 100%;
-      max-width: 500px;
       background: #000;
+      border-radius: 10px;
     }
 
     button {
-      width: 100%;
-      max-width: 500px;
-      padding: 14px;
-      margin-top: 10px;
+      padding: 12px 18px;
+      margin: 5px;
       font-size: 16px;
     }
 
     #result {
+      white-space: pre-wrap;
       margin-top: 15px;
       padding: 15px;
-      white-space: pre-wrap;
-      text-align: left;
-      background: #f3f3f3;
+      background: #eee;
+      border-radius: 8px;
     }
   </style>
 </head>
 
 <body>
 
-<h2>QR Scanner Test</h2>
+  <h2>ZXing QR Test</h2>
 
-<button onclick="startScanner()">
-  📷 MULAI KAMERA
-</button>
+  <video id="video" autoplay muted playsinline></video>
 
-<button onclick="stopScanner()">
-  ⛔ STOP
-</button>
+  <br>
 
-<video id="video" autoplay muted playsinline></video>
+  <button onclick="startZXing()">
+    Mulai Kamera
+  </button>
 
-<div id="result">
-  Siap melakukan test QR.
-</div>
+  <button onclick="stopZXing()">
+    Stop
+  </button>
 
-<script>
-
-let reader = null;
-let controls = null;
-let running = false;
-
-function result(text) {
-  document.getElementById('result').textContent = text;
-}
-
-async function startScanner() {
-
-  if (running) return;
-
-  try {
-
-    result('Memulai kamera...');
-
-    reader =
-      new ZXingBrowser.BrowserMultiFormatReader();
-
-    const devices =
-      await ZXingBrowser.BrowserCodeReader
-        .listVideoInputDevices();
-
-    console.log('Camera devices:', devices);
-
-    if (!devices.length) {
-      throw new Error(
-        'Tidak ada kamera yang ditemukan.'
-      );
-    }
-
-    /*
-     * Cari kamera belakang.
-     */
-    let device =
-      devices.find(d =>
-        /back|rear|environment/i
-          .test(d.label)
-      );
-
-    /*
-     * Kalau tidak ditemukan,
-     * gunakan kamera terakhir.
-     */
-    if (!device) {
-      device =
-        devices[devices.length - 1];
-    }
-
-    console.log(
-      'Selected camera:',
-      device
-    );
-
-    result(
-      'Kamera ditemukan:\n' +
-      device.label +
-      '\n\n' +
-      'Arahkan ke QR.'
-    );
-
-    controls =
-      await reader.decodeFromVideoDevice(
-
-        device.deviceId,
-
-        'video',
-
-        (scanResult, error) => {
-
-          if (scanResult) {
-
-            const text =
-              scanResult.getText();
-
-            console.log(
-              'QR RESULT:',
-              text
-            );
-
-            result(
-              'QR TERBACA!\n\n' +
-              text
-            );
-
-          }
-
-          if (error) {
-            /*
-             * ZXing terus mencoba membaca frame.
-             * Tidak perlu menampilkan error setiap frame.
-             */
-          }
-
-        }
-
-      );
-
-    running = true;
-
-  } catch (error) {
-
-    console.error(error);
-
-    result(
-      'GAGAL\n\n' +
-      'Name: ' +
-      (error.name || 'unknown') +
-      '\n\n' +
-      'Message: ' +
-      (error.message || error)
-    );
-
-  }
-
-}
-
-async function stopScanner() {
-
-  try {
-
-    if (controls) {
-      controls.stop();
-      controls = null;
-    }
-
-    if (reader) {
-      reader.reset();
-    }
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-  running = false;
-
-  result(
-    'Scanner dihentikan.'
-  );
-}
-
-</script>
+  <div id="result">
+    Tekan "Mulai Kamera".
+  </div>
 
 </body>
 </html>
