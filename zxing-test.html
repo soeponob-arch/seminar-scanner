@@ -3,17 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZXing QR Test</title>
+
+  <title>QR Camera Test</title>
 
   <script type="module">
-    import {
-      BrowserMultiFormatReader
-    } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+    import { BrowserMultiFormatReader }
+      from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
 
-    window.startZXing = async function () {
+    window.startCameraTest = async function () {
+
       const result = document.getElementById("result");
 
       try {
+
         result.textContent = "Memulai kamera...";
 
         const reader = new BrowserMultiFormatReader();
@@ -21,76 +23,91 @@
         const devices =
           await BrowserMultiFormatReader.listVideoInputDevices();
 
-        console.log("Camera devices:", devices);
+        console.log("CAMERA DEVICES:", devices);
 
-        if (!devices.length) {
-          throw new Error("Tidak ada kamera yang ditemukan.");
+        if (!devices || devices.length === 0) {
+          throw new Error("Tidak ada kamera ditemukan.");
         }
 
-        // Pilih kamera belakang jika tersedia
-        let camera = devices.find(d =>
-          /back|rear|environment/i.test(d.label)
-        );
+        let camera = devices.find(function(device) {
+          return /back|rear|environment/i.test(device.label);
+        });
 
         if (!camera) {
           camera = devices[devices.length - 1];
         }
 
-        console.log("Selected camera:", camera);
+        console.log("CAMERA YANG DIPILIH:", camera);
 
         result.textContent =
-          "Kamera aktif.\n\n" +
+          "KAMERA AKTIF\n\n" +
           camera.label +
-          "\n\nArahkan kamera ke QR.";
+          "\n\n" +
+          "Arahkan kamera ke QR.";
 
-        window.zxingControls =
+        window.controls =
           await reader.decodeFromVideoDevice(
             camera.deviceId,
             "video",
-            (scanResult, error) => {
+            function(scanResult, error) {
 
               if (scanResult) {
+
                 const text = scanResult.getText();
 
-                console.log("QR RESULT:", text);
+                console.log("QR BERHASIL:", text);
 
                 result.textContent =
                   "QR TERBACA!\n\n" + text;
 
-                if (window.zxingControls) {
-                  window.zxingControls.stop();
+                if (window.controls) {
+                  window.controls.stop();
                 }
               }
+
             }
           );
 
       } catch (error) {
+
         console.error(error);
 
         result.textContent =
           "GAGAL\n\n" +
-          "Name: " + (error.name || "unknown") +
+          "Name: " +
+          (error.name || "unknown") +
           "\n\nMessage: " +
           (error.message || error);
+
       }
+
     };
 
-    window.stopZXing = function () {
+
+    window.stopCameraTest = function() {
+
       try {
-        if (window.zxingControls) {
-          window.zxingControls.stop();
-          window.zxingControls = null;
+
+        if (window.controls) {
+          window.controls.stop();
+          window.controls = null;
         }
 
         document.getElementById("result").textContent =
           "Scanner dihentikan.";
+
       } catch (error) {
+
         console.error(error);
+
       }
+
     };
+
   </script>
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
       max-width: 600px;
@@ -100,7 +117,7 @@
 
     video {
       width: 100%;
-      background: #000;
+      background: black;
       border-radius: 10px;
     }
 
@@ -114,30 +131,37 @@
       white-space: pre-wrap;
       margin-top: 15px;
       padding: 15px;
-      background: #eee;
+      background: #eeeeee;
       border-radius: 8px;
     }
+
   </style>
+
 </head>
 
 <body>
 
-  <h2>ZXing QR Test</h2>
+  <h2>QR Camera Test</h2>
 
-  <video id="video" autoplay muted playsinline></video>
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline>
+  </video>
 
   <br>
 
-  <button onclick="startZXing()">
-    Mulai Kamera
+  <button onclick="startCameraTest()">
+    MULAI KAMERA
   </button>
 
-  <button onclick="stopZXing()">
-    Stop
+  <button onclick="stopCameraTest()">
+    STOP
   </button>
 
   <div id="result">
-    Tekan "Mulai Kamera".
+    Siap melakukan test QR
   </div>
 
 </body>
