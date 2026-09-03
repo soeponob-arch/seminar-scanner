@@ -1,19 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 
 <head>
 
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
 
   <meta
     name="viewport"
-    content="width=device-width,initial-scale=1"
+    content="width=device-width, initial-scale=1.0"
   >
 
   <title>Seminar Check-in</title>
 
 
-  <!-- ZXing QR Scanner -->
+  <!-- ==================================================
+       ZXing
+       ================================================== -->
+
   <script type="module">
 
     import {
@@ -23,7 +26,7 @@
 
     /*
      * ==================================================
-     * CONFIGURATION
+     * API
      * ==================================================
      */
 
@@ -41,27 +44,7 @@
 
     let controls = null;
 
-    let scanning = false;
-
     let processing = false;
-
-
-    /*
-     * ==================================================
-     * UI
-     * ==================================================
-     */
-
-    window.setResult = function(text, type) {
-
-      const el =
-        document.getElementById('result');
-
-      el.textContent = text;
-
-      el.className = type || '';
-
-    };
 
 
     /*
@@ -69,187 +52,209 @@
      * START CAMERA
      * ==================================================
      */
-window.startCamera = async function() {
 
-  if (scanning) {
-    return;
-  }
+    window.startCamera = async function () {
 
-  try {
-
-    setResult(
-      'Memulai kamera...',
-      ''
-    );
+      const result =
+        document.getElementById("result");
 
 
-    reader =
-      new BrowserMultiFormatReader();
+      try {
+
+        result.textContent =
+          "Memulai kamera...";
 
 
-    const devices =
-      await BrowserMultiFormatReader
-        .listVideoInputDevices();
+        /*
+         * INI SENGAJA SAMA DENGAN
+         * zxing-test.html YANG SUDAH BERHASIL.
+         */
+
+        reader =
+          new BrowserMultiFormatReader();
 
 
-    console.log(
-      'CAMERA DEVICES:',
-      devices
-    );
+        const devices =
+          await BrowserMultiFormatReader
+            .listVideoInputDevices();
 
 
-    if (!devices || devices.length === 0) {
-      throw new Error(
-        'Tidak ada kamera yang ditemukan.'
-      );
-    }
+        console.log(
+          "CAMERA DEVICES:",
+          devices
+        );
 
 
-    let camera =
-      devices.find(function(device) {
+        if (
+          !devices ||
+          devices.length === 0
+        ) {
 
-        return /back|rear|environment/i
-          .test(device.label);
-
-      });
-
-
-    if (!camera) {
-      camera =
-        devices[devices.length - 1];
-    }
-
-
-    console.log(
-      'CAMERA YANG DIPILIH:',
-      camera
-    );
-
-
-    setResult(
-      'KAMERA AKTIF\n\n' +
-      (camera.label || 'Kamera belakang') +
-      '\n\n' +
-      'Arahkan kamera ke QR peserta.',
-      'success'
-    );
-
-
-    controls =
-      await reader.decodeFromVideoDevice(
-
-        camera.deviceId,
-
-        'video',
-
-        function(scanResult, error) {
-
-          /*
-           * Jangan lakukan apa-apa kalau
-           * QR belum terbaca.
-           */
-
-          if (!scanResult) {
-            return;
-          }
-
-
-          const text =
-            scanResult.getText();
-
-
-          console.log(
-            'QR BERHASIL DIBACA:',
-            text
+          throw new Error(
+            "Tidak ada kamera ditemukan."
           );
-
-
-          /*
-           * Tampilkan dulu hasil mentah.
-           * Ini penting untuk memastikan
-           * kamera benar-benar membaca QR.
-           */
-
-          setResult(
-            'QR TERBACA!\n\n' +
-            text,
-            'success'
-          );
-
-
-          /*
-           * Setelah terbukti terbaca,
-           * baru proses check-in.
-           */
-
-          if (processing) {
-            return;
-          }
-
-
-          processing = true;
-
-
-          processQr(text);
 
         }
 
-      );
+
+        /*
+         * Cari kamera belakang.
+         */
+
+        let camera =
+          devices.find(function (device) {
+
+            return /back|rear|environment/i
+              .test(device.label);
+
+          });
 
 
-    scanning = true;
+        /*
+         * Jika tidak ditemukan,
+         * gunakan kamera terakhir.
+         */
+
+        if (!camera) {
+
+          camera =
+            devices[devices.length - 1];
+
+        }
 
 
-    document
-      .getElementById('startBtn')
-      .disabled = true;
+        console.log(
+          "CAMERA YANG DIPILIH:",
+          camera
+        );
 
 
-    document
-      .getElementById('stopBtn')
-      .disabled = false;
+        result.textContent =
+
+          "KAMERA AKTIF\n\n" +
+
+          camera.label +
+
+          "\n\n" +
+
+          "Arahkan kamera ke QR peserta.";
 
 
-  } catch (error) {
+        /*
+         * INI JUGA SENGAJA SAMA DENGAN
+         * zxing-test.html.
+         */
 
-    console.error(error);
+        controls =
+          await reader.decodeFromVideoDevice(
 
+            camera.deviceId,
 
-    setResult(
+            "video",
 
-      'KAMERA GAGAL DIJALANKAN\n\n' +
+            function (scanResult, error) {
 
-      'Name: ' +
-      (error.name || 'unknown') +
+              if (scanResult) {
 
-      '\n\nMessage: ' +
-
-      (error.message || error),
-
-      'error'
-
-    );
-
-
-    reader = null;
-    controls = null;
-    scanning = false;
-    processing = false;
+                const text =
+                  scanResult.getText();
 
 
-    document
-      .getElementById('startBtn')
-      .disabled = false;
+                console.log(
+                  "QR BERHASIL:",
+                  text
+                );
 
 
-    document
-      .getElementById('stopBtn')
-      .disabled = true;
+                /*
+                 * Tampilkan dulu isi QR.
+                 */
 
-  }
+                result.textContent =
 
-};
-    
+                  "QR TERBACA!\n\n" +
+
+                  text;
+
+
+                /*
+                 * Jangan kirim QR berulang-ulang.
+                 */
+
+                if (processing) {
+                  return;
+                }
+
+
+                processing = true;
+
+
+                /*
+                 * Proses nomor registrasi.
+                 */
+
+                processQr(text);
+
+              }
+
+            }
+
+          );
+
+
+        document
+          .getElementById("startBtn")
+          .disabled = true;
+
+
+        document
+          .getElementById("stopBtn")
+          .disabled = false;
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        result.textContent =
+
+          "GAGAL\n\n" +
+
+          "Name: " +
+
+          (
+            error.name ||
+            "unknown"
+          ) +
+
+          "\n\nMessage: " +
+
+          (
+            error.message ||
+            error
+          );
+
+
+        reader = null;
+
+        controls = null;
+
+        processing = false;
+
+
+        document
+          .getElementById("startBtn")
+          .disabled = false;
+
+
+        document
+          .getElementById("stopBtn")
+          .disabled = true;
+
+      }
+
+    };
 
 
     /*
@@ -258,12 +263,16 @@ window.startCamera = async function() {
      * ==================================================
      */
 
-    window.stopCamera = async function() {
+    window.stopCamera = function () {
 
       try {
 
         if (controls) {
+
           controls.stop();
+
+          controls = null;
+
         }
 
       } catch (error) {
@@ -276,7 +285,11 @@ window.startCamera = async function() {
       try {
 
         if (reader) {
+
           reader.reset();
+
+          reader = null;
+
         }
 
       } catch (error) {
@@ -286,27 +299,23 @@ window.startCamera = async function() {
       }
 
 
-      controls = null;
-      reader = null;
-
-      scanning = false;
       processing = false;
 
 
       document
-        .getElementById('startBtn')
+        .getElementById("startBtn")
         .disabled = false;
 
 
       document
-        .getElementById('stopBtn')
+        .getElementById("stopBtn")
         .disabled = true;
 
 
-      setResult(
-        'Kamera dihentikan.',
-        ''
-      );
+      document
+        .getElementById("result")
+        .textContent =
+          "Scanner dihentikan.";
 
     };
 
@@ -320,23 +329,16 @@ window.startCamera = async function() {
     function processQr(text) {
 
       console.log(
-        'QR CONTENT:',
+        "ISI QR:",
         text
       );
 
 
-      let reg = '';
+      let reg = "";
 
 
       /*
-       * QR kita berisi JSON:
-       *
-       * {
-       *   reg: "REG-00009",
-       *   nama: "...",
-       *   hp: "...",
-       *   event: "..."
-       * }
+       * QR dari sistem kita berbentuk JSON.
        */
 
       try {
@@ -354,12 +356,11 @@ window.startCamera = async function() {
 
         }
 
-      } catch (e) {
+      } catch (error) {
 
         /*
-         * Kalau QR bukan JSON,
-         * anggap seluruh isi QR
-         * sebagai nomor registrasi.
+         * Kalau QR hanya berisi
+         * REG-xxxxx langsung.
          */
 
         reg =
@@ -370,12 +371,20 @@ window.startCamera = async function() {
       }
 
 
+      console.log(
+        "NOMOR REGISTRASI:",
+        reg
+      );
+
+
       if (!reg) {
 
-        setResult(
-          'QR tidak berisi nomor registrasi.',
-          'error'
-        );
+        document
+          .getElementById("result")
+          .textContent =
+
+            "QR TERBACA,\n" +
+            "tetapi nomor registrasi tidak ditemukan.";
 
 
         processing = false;
@@ -385,11 +394,9 @@ window.startCamera = async function() {
       }
 
 
-      console.log(
-        'REGISTRASI:',
-        reg
-      );
-
+      /*
+       * Kirim ke API.
+       */
 
       sendCheckIn(reg);
 
@@ -406,34 +413,37 @@ window.startCamera = async function() {
 
       const officer =
         document
-          .getElementById('officer')
+          .getElementById("officer")
           .value
           .trim() ||
-        'Panitia';
+        "Panitia";
 
 
-      setResult(
+      const result =
+        document.getElementById("result");
 
-        'MEMPROSES CHECK-IN...\n\n' +
 
-        'Registrasi: ' +
+      result.textContent =
+
+        "QR TERBACA!\n\n" +
+
+        "Registrasi: " +
         reg +
 
-        '\n' +
+        "\n\n" +
 
-        'Petugas: ' +
-        officer,
-
-        ''
-
-      );
+        "Mengirim ke server...";
 
 
       try {
 
         console.log(
-          'Mengirim ke API:',
-          API_URL
+          "KIRIM API:",
+          {
+            action: "checkin",
+            reg: reg,
+            officer: officer
+          }
         );
 
 
@@ -443,17 +453,20 @@ window.startCamera = async function() {
             API_URL,
 
             {
-              method: 'POST',
+
+              method: "POST",
 
               headers: {
-                'Content-Type':
-                  'text/plain;charset=utf-8'
+
+                "Content-Type":
+                  "text/plain;charset=utf-8"
+
               },
 
               body:
                 JSON.stringify({
 
-                  action: 'checkin',
+                  action: "checkin",
 
                   reg: reg,
 
@@ -471,7 +484,7 @@ window.startCamera = async function() {
 
 
         console.log(
-          'API RESPONSE:',
+          "RESPONSE API:",
           text
         );
 
@@ -484,36 +497,33 @@ window.startCamera = async function() {
           data =
             JSON.parse(text);
 
-        } catch (e) {
+        } catch (error) {
 
-          data = null;
+          console.error(
+            "Response bukan JSON:",
+            error
+          );
 
         }
 
 
         /*
-         * Jika Apps Script mengembalikan
-         * response yang tidak bisa dibaca
-         * sebagai JSON.
+         * Jika server berhasil dipanggil
+         * tetapi response JSON tidak terbaca.
          */
 
         if (!data) {
 
-          setResult(
+          result.textContent =
 
-            'CHECK-IN TERKIRIM\n\n' +
+            "CHECK-IN TERKIRIM\n\n" +
 
-            'Registrasi: ' +
+            "Registrasi: " +
             reg +
 
-            '\n\n' +
+            "\n\n" +
 
-            'Server tidak mengembalikan JSON.',
-
-            ''
-
-          );
-
+            "Silakan cek Sheet Peserta.";
 
           return;
 
@@ -521,75 +531,78 @@ window.startCamera = async function() {
 
 
         /*
-         * CHECK-IN BERHASIL
+         * API mengatakan berhasil.
          */
 
         if (data.ok) {
 
 
+          /*
+           * Peserta sudah pernah hadir.
+           */
+
           if (data.already) {
 
-            setResult(
+            result.textContent =
 
-              'SUDAH CHECK-IN\n\n' +
+              "SUDAH CHECK-IN\n\n" +
 
-              'Registrasi: ' +
+              "Registrasi: " +
               data.reg +
 
-              '\n' +
+              "\n" +
 
-              'Nama: ' +
+              "Nama: " +
               data.nama +
 
-              '\n\n' +
+              "\n\n" +
 
-              'Peserta ini sebelumnya sudah tercatat Hadir.',
-
-              ''
-
-            );
-
-
-          } else {
-
-            setResult(
-
-              'CHECK-IN BERHASIL\n\n' +
-
-              'Registrasi: ' +
-              data.reg +
-
-              '\n' +
-
-              'Nama: ' +
-              data.nama +
-
-              '\n\n' +
-
-              'Status peserta sekarang: HADIR',
-
-              'success'
-
-            );
+              "Peserta sudah tercatat HADIR.";
 
           }
 
 
-        } else {
+          /*
+           * Check-in baru.
+           */
+
+          else {
+
+            result.textContent =
+
+              "CHECK-IN BERHASIL\n\n" +
+
+              "Registrasi: " +
+              data.reg +
+
+              "\n" +
+
+              "Nama: " +
+              data.nama +
+
+              "\n\n" +
+
+              "STATUS: HADIR";
+
+          }
+
+        }
 
 
-          setResult(
+        /*
+         * API mengatakan gagal.
+         */
 
-            'CHECK-IN GAGAL\n\n' +
+        else {
+
+          result.textContent =
+
+            "CHECK-IN GAGAL\n\n" +
 
             (
               data.error ||
-              'Error tidak diketahui.'
-            ),
-
-            'error'
-
-          );
+              "Error tidak diketahui."
+            );
 
         }
 
@@ -597,48 +610,42 @@ window.startCamera = async function() {
       } catch (error) {
 
         console.error(
-          'API ERROR:',
+          "API ERROR:",
           error
         );
 
 
-        setResult(
+        result.textContent =
 
-          'GAGAL TERHUBUNG KE SERVER\n\n' +
+          "QR BERHASIL DIBACA\n\n" +
 
-          'Error: ' +
-          (error.name || 'Unknown') +
+          "Registrasi: " +
+          reg +
 
-          '\n\n' +
+          "\n\n" +
+
+          "Tetapi gagal menghubungi API.\n\n" +
 
           (
             error.message ||
             error
-          ),
-
-          'error'
-
-        );
+          );
 
       }
 
 
       /*
-       * Beri jeda 2,5 detik supaya QR
-       * yang sama tidak langsung dikirim
-       * berulang kali.
+       * Beri jeda supaya QR yang sama
+       * tidak dikirim berkali-kali.
        */
 
       setTimeout(
-
-        function() {
+        function () {
 
           processing = false;
 
         },
-
-        2500
-
+        3000
       );
 
     }
@@ -646,20 +653,24 @@ window.startCamera = async function() {
 
     /*
      * ==================================================
-     * FILE QR
+     * SCAN FILE
      * ==================================================
+     *
+     * Untuk sementara tombol ini kita matikan
+     * dari alur utama karena fokus kita adalah
+     * memastikan kamera + ZXing + API.
      */
 
-    window.scanFile = function() {
+    window.scanFile = function () {
 
       document
-        .getElementById('qrFile')
+        .getElementById("qrFile")
         .click();
 
     };
 
 
-    window.processFile = async function(input) {
+    window.processFile = async function (input) {
 
       const file =
         input.files[0];
@@ -670,80 +681,15 @@ window.startCamera = async function() {
       }
 
 
-      setResult(
-        'Membaca QR dari file...',
-        ''
-      );
+      const result =
+        document.getElementById("result");
 
 
-      try {
-
-        const fileReader =
-          new BrowserMultiFormatReader();
+      result.textContent =
+        "Scan file QR belum kita aktifkan pada tahap ini.";
 
 
-        const imageUrl =
-          URL.createObjectURL(file);
-
-
-        const result =
-          await fileReader.decodeFromImageUrl(
-            imageUrl
-          );
-
-
-        URL.revokeObjectURL(
-          imageUrl
-        );
-
-
-        const text =
-          result.getText();
-
-
-        console.log(
-          'QR FILE TERBACA:',
-          text
-        );
-
-
-        if (!processing) {
-
-          processing = true;
-
-          processQr(text);
-
-        }
-
-
-      } catch (error) {
-
-        console.error(
-          'FILE QR ERROR:',
-          error
-        );
-
-
-        setResult(
-
-          'QR tidak dapat dibaca dari file.\n\n' +
-
-          (
-            error.message ||
-            'Format QR tidak dikenali.'
-          ),
-
-          'error'
-
-        );
-
-
-        processing = false;
-
-      }
-
-
-      input.value = '';
+      input.value = "";
 
     };
 
@@ -752,31 +698,17 @@ window.startCamera = async function() {
 
   <style>
 
-    * {
-      box-sizing: border-box;
-    }
-
-
     body {
 
       font-family: Arial, sans-serif;
 
-      margin: 0;
+      max-width: 600px;
+
+      margin: 20px auto;
+
+      padding: 15px;
 
       background: #f5f5f5;
-
-      color: #222;
-
-    }
-
-
-    .container {
-
-      max-width: 520px;
-
-      margin: auto;
-
-      padding: 18px;
 
     }
 
@@ -784,8 +716,6 @@ window.startCamera = async function() {
     h2 {
 
       text-align: center;
-
-      margin-top: 5px;
 
     }
 
@@ -816,6 +746,8 @@ window.startCamera = async function() {
 
       border: 1px solid #bbb;
 
+      box-sizing: border-box;
+
     }
 
 
@@ -832,23 +764,6 @@ window.startCamera = async function() {
 
       opacity: .5;
 
-      cursor: not-allowed;
-
-    }
-
-
-    #reader {
-
-      width: 100%;
-
-      margin-top: 18px;
-
-      background: #111;
-
-      border-radius: 8px;
-
-      overflow: hidden;
-
     }
 
 
@@ -856,9 +771,9 @@ window.startCamera = async function() {
 
       width: 100%;
 
-      display: block;
+      margin-top: 18px;
 
-      background: #111;
+      background: black;
 
       border-radius: 8px;
 
@@ -866,6 +781,8 @@ window.startCamera = async function() {
 
 
     #result {
+
+      white-space: pre-wrap;
 
       margin-top: 18px;
 
@@ -875,34 +792,7 @@ window.startCamera = async function() {
 
       border-radius: 8px;
 
-      min-height: 90px;
-
-      white-space: pre-wrap;
-
-    }
-
-
-    .success {
-
-      font-weight: bold;
-
-    }
-
-
-    .error {
-
-      font-weight: bold;
-
-    }
-
-
-    .small {
-
-      margin-top: 12px;
-
-      font-size: 13px;
-
-      color: #666;
+      min-height: 100px;
 
     }
 
@@ -913,83 +803,78 @@ window.startCamera = async function() {
 
 <body>
 
-  <div class="container">
-
-    <h2>
-      Seminar Check-in
-    </h2>
+  <h2>
+    Seminar Check-in
+  </h2>
 
 
-    <label for="officer">
-      Nama Panitia
-    </label>
+  <label for="officer">
+    Nama Panitia
+  </label>
 
 
-    <input
-      id="officer"
-      type="text"
-      placeholder="Masukkan nama panitia"
-    >
+  <input
+    id="officer"
+    type="text"
+    placeholder="Masukkan nama panitia"
+  >
 
 
-    <button
-      id="startBtn"
-      onclick="startCamera()"
-    >
-      📷 MULAI KAMERA
-    </button>
+  <button
+    id="startBtn"
+    onclick="startCamera()"
+  >
+    📷 MULAI KAMERA
+  </button>
 
 
-    <button
-      id="stopBtn"
-      onclick="stopCamera()"
-      disabled
-    >
-      ⛔ STOP KAMERA
-    </button>
+  <button
+    id="stopBtn"
+    onclick="stopCamera()"
+    disabled
+  >
+    ⛔ STOP KAMERA
+  </button>
 
 
-    <div id="reader">
+  <!--
+    Video dibuat persis seperti
+    zxing-test.html yang berhasil.
+  -->
 
-      <video
-        id="video"
-        autoplay
-        muted
-        playsinline
-      ></video>
-
-    </div>
-
-
-    <button
-      onclick="scanFile()"
-    >
-      📁 SCAN FILE QR
-    </button>
+  <video
+    id="video"
+    autoplay
+    muted
+    playsinline>
+  </video>
 
 
-    <input
-      id="qrFile"
-      type="file"
-      accept="image/*"
-      style="display:none"
-      onchange="processFile(this)"
-    >
+  <button
+    onclick="scanFile()"
+  >
+    📁 SCAN FILE QR
+  </button>
 
 
-    <div id="result">
-      Siap melakukan scan.
-    </div>
+  <input
+    id="qrFile"
+    type="file"
+    accept="image/*"
+    style="display:none"
+    onchange="processFile(this)"
+  >
 
 
-    <div class="small">
-
-      Gunakan kamera belakang HP untuk
-      memindai QR peserta.
-
-    </div>
-
+  <div id="result">
+    Siap melakukan scan.
   </div>
+
+
+  <p>
+    Gunakan kamera belakang HP untuk
+    memindai QR peserta.
+  </p>
 
 </body>
 
