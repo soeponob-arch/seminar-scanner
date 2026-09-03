@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="id">
 
-
 <head>
 
   <meta charset="utf-8">
@@ -13,11 +12,752 @@
 
   <title>Seminar Check-in</title>
 
-  <script
-    src="https://unpkg.com/html5-qrcode"
-    type="text/javascript">
-const API_URL ='https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcdn5ETdrkr1FldK_Q-9eRhzFUBDnMhhwrz7uey1S_LQSpg/exec';
+
+  <!-- ZXing QR Scanner -->
+  <script type="module">
+
+    import {
+      BrowserMultiFormatReader
+    } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+
+
+    /*
+     * ==================================================
+     * CONFIGURATION
+     * ==================================================
+     */
+
+    const API_URL =
+      'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcdn5ETdrkr1FldK_Q-9eRhzFUBDnMhhwrz7uey1S_LQSpg/exec';
+
+
+    /*
+     * ==================================================
+     * GLOBAL
+     * ==================================================
+     */
+
+    let reader = null;
+
+    let controls = null;
+
+    let scanning = false;
+
+    let processing = false;
+
+
+    /*
+     * ==================================================
+     * UI
+     * ==================================================
+     */
+
+    window.setResult = function(text, type) {
+
+      const el =
+        document.getElementById('result');
+
+      el.textContent = text;
+
+      el.className = type || '';
+
+    };
+
+
+    /*
+     * ==================================================
+     * START CAMERA
+     * ==================================================
+     */
+
+    window.startCamera = async function() {
+
+      if (scanning) {
+        return;
+      }
+
+      try {
+
+        if (!window.isSecureContext) {
+          throw new Error(
+            'Halaman tidak menggunakan HTTPS.'
+          );
+        }
+
+        if (
+          !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia
+        ) {
+          throw new Error(
+            'Browser tidak menyediakan akses kamera.'
+          );
+        }
+
+
+        setResult(
+          'Memulai kamera belakang...',
+          ''
+        );
+
+
+        reader =
+          new BrowserMultiFormatReader();
+
+
+        const devices =
+          await BrowserMultiFormatReader.listVideoInputDevices();
+
+
+        console.log(
+          'Camera devices:',
+          devices
+        );
+
+
+        if (
+          !devices ||
+          devices.length === 0
+        ) {
+          throw new Error(
+            'Tidak ada kamera yang ditemukan.'
+          );
+        }
+
+
+        /*
+         * Cari kamera belakang.
+         */
+
+        let camera =
+          devices.find(function(device) {
+
+            return /back|rear|environment/i
+              .test(device.label);
+
+          });
+
+
+        /*
+         * Kalau nama kamera tidak menunjukkan
+         * back/rear, gunakan kamera terakhir.
+         */
+
+        if (!camera) {
+          camera =
+            devices[devices.length - 1];
+        }
+
+
+        console.log(
+          'Selected camera:',
+          camera
+        );
+
+
+        setResult(
+          'KAMERA AKTIF\n\n' +
+          'Kamera: ' +
+          (camera.label || 'Kamera belakang') +
+          '\n\n' +
+          'Arahkan kamera ke QR peserta.',
+          'success'
+        );
+
+
+        controls =
+          await reader.decodeFromVideoDevice(
+            camera.deviceId,
+            'video',
+            function(scanResult, error) {
+
+              if (!scanResult) {
+                return;
+              }
+
+
+              const text =
+                scanResult.getText();
+
+
+              console.log(
+                'QR TERBACA:',
+                text
+              );
+
+
+              /*
+               * Jangan membaca QR baru
+               * ketika QR sebelumnya masih diproses.
+               */
+
+              if (processing) {
+                return;
+              }
+
+
+              processing = true;
+
+
+              processQr(text);
+
+            }
+          );
+
+
+        scanning = true;
+
+
+        document
+          .getElementById('startBtn')
+          .disabled = true;
+
+
+        document
+          .getElementById('stopBtn')
+          .disabled = false;
+
+
+      } catch (error) {
+
+        console.error(
+          'CAMERA ERROR:',
+          error
+        );
+
+
+        setResult(
+
+          'KAMERA GAGAL DIJALANKAN\n\n' +
+
+          'Error: ' +
+          (error.name || 'Tidak diketahui') +
+
+          '\n\n' +
+
+          (error.message || error),
+
+          'error'
+
+        );
+
+
+        reader = null;
+        controls = null;
+        scanning = false;
+        processing = false;
+
+
+        document
+          .getElementById('startBtn')
+          .disabled = false;
+
+
+        document
+          .getElementById('stopBtn')
+          .disabled = true;
+
+      }
+
+    };
+
+
+    /*
+     * ==================================================
+     * STOP CAMERA
+     * ==================================================
+     */
+
+    window.stopCamera = async function() {
+
+      try {
+
+        if (controls) {
+          controls.stop();
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+
+      try {
+
+        if (reader) {
+          reader.reset();
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+
+      controls = null;
+      reader = null;
+
+      scanning = false;
+      processing = false;
+
+
+      document
+        .getElementById('startBtn')
+        .disabled = false;
+
+
+      document
+        .getElementById('stopBtn')
+        .disabled = true;
+
+
+      setResult(
+        'Kamera dihentikan.',
+        ''
+      );
+
+    };
+
+
+    /*
+     * ==================================================
+     * PROCESS QR
+     * ==================================================
+     */
+
+    function processQr(text) {
+
+      console.log(
+        'QR CONTENT:',
+        text
+      );
+
+
+      let reg = '';
+
+
+      /*
+       * QR kita berisi JSON:
+       *
+       * {
+       *   reg: "REG-00009",
+       *   nama: "...",
+       *   hp: "...",
+       *   event: "..."
+       * }
+       */
+
+      try {
+
+        const obj =
+          JSON.parse(text);
+
+
+        if (obj.reg) {
+
+          reg =
+            String(obj.reg)
+              .trim()
+              .toUpperCase();
+
+        }
+
+      } catch (e) {
+
+        /*
+         * Kalau QR bukan JSON,
+         * anggap seluruh isi QR
+         * sebagai nomor registrasi.
+         */
+
+        reg =
+          String(text)
+            .trim()
+            .toUpperCase();
+
+      }
+
+
+      if (!reg) {
+
+        setResult(
+          'QR tidak berisi nomor registrasi.',
+          'error'
+        );
+
+
+        processing = false;
+
+        return;
+
+      }
+
+
+      console.log(
+        'REGISTRASI:',
+        reg
+      );
+
+
+      sendCheckIn(reg);
+
+    }
+
+
+    /*
+     * ==================================================
+     * SEND CHECK-IN
+     * ==================================================
+     */
+
+    async function sendCheckIn(reg) {
+
+      const officer =
+        document
+          .getElementById('officer')
+          .value
+          .trim() ||
+        'Panitia';
+
+
+      setResult(
+
+        'MEMPROSES CHECK-IN...\n\n' +
+
+        'Registrasi: ' +
+        reg +
+
+        '\n' +
+
+        'Petugas: ' +
+        officer,
+
+        ''
+
+      );
+
+
+      try {
+
+        console.log(
+          'Mengirim ke API:',
+          API_URL
+        );
+
+
+        const response =
+          await fetch(
+
+            API_URL,
+
+            {
+              method: 'POST',
+
+              headers: {
+                'Content-Type':
+                  'text/plain;charset=utf-8'
+              },
+
+              body:
+                JSON.stringify({
+
+                  action: 'checkin',
+
+                  reg: reg,
+
+                  officer: officer
+
+                })
+
+            }
+
+          );
+
+
+        const text =
+          await response.text();
+
+
+        console.log(
+          'API RESPONSE:',
+          text
+        );
+
+
+        let data = null;
+
+
+        try {
+
+          data =
+            JSON.parse(text);
+
+        } catch (e) {
+
+          data = null;
+
+        }
+
+
+        /*
+         * Jika Apps Script mengembalikan
+         * response yang tidak bisa dibaca
+         * sebagai JSON.
+         */
+
+        if (!data) {
+
+          setResult(
+
+            'CHECK-IN TERKIRIM\n\n' +
+
+            'Registrasi: ' +
+            reg +
+
+            '\n\n' +
+
+            'Server tidak mengembalikan JSON.',
+
+            ''
+
+          );
+
+
+          return;
+
+        }
+
+
+        /*
+         * CHECK-IN BERHASIL
+         */
+
+        if (data.ok) {
+
+
+          if (data.already) {
+
+            setResult(
+
+              'SUDAH CHECK-IN\n\n' +
+
+              'Registrasi: ' +
+              data.reg +
+
+              '\n' +
+
+              'Nama: ' +
+              data.nama +
+
+              '\n\n' +
+
+              'Peserta ini sebelumnya sudah tercatat Hadir.',
+
+              ''
+
+            );
+
+
+          } else {
+
+            setResult(
+
+              'CHECK-IN BERHASIL\n\n' +
+
+              'Registrasi: ' +
+              data.reg +
+
+              '\n' +
+
+              'Nama: ' +
+              data.nama +
+
+              '\n\n' +
+
+              'Status peserta sekarang: HADIR',
+
+              'success'
+
+            );
+
+          }
+
+
+        } else {
+
+
+          setResult(
+
+            'CHECK-IN GAGAL\n\n' +
+
+            (
+              data.error ||
+              'Error tidak diketahui.'
+            ),
+
+            'error'
+
+          );
+
+        }
+
+
+      } catch (error) {
+
+        console.error(
+          'API ERROR:',
+          error
+        );
+
+
+        setResult(
+
+          'GAGAL TERHUBUNG KE SERVER\n\n' +
+
+          'Error: ' +
+          (error.name || 'Unknown') +
+
+          '\n\n' +
+
+          (
+            error.message ||
+            error
+          ),
+
+          'error'
+
+        );
+
+      }
+
+
+      /*
+       * Beri jeda 2,5 detik supaya QR
+       * yang sama tidak langsung dikirim
+       * berulang kali.
+       */
+
+      setTimeout(
+
+        function() {
+
+          processing = false;
+
+        },
+
+        2500
+
+      );
+
+    }
+
+
+    /*
+     * ==================================================
+     * FILE QR
+     * ==================================================
+     */
+
+    window.scanFile = function() {
+
+      document
+        .getElementById('qrFile')
+        .click();
+
+    };
+
+
+    window.processFile = async function(input) {
+
+      const file =
+        input.files[0];
+
+
+      if (!file) {
+        return;
+      }
+
+
+      setResult(
+        'Membaca QR dari file...',
+        ''
+      );
+
+
+      try {
+
+        const fileReader =
+          new BrowserMultiFormatReader();
+
+
+        const imageUrl =
+          URL.createObjectURL(file);
+
+
+        const result =
+          await fileReader.decodeFromImageUrl(
+            imageUrl
+          );
+
+
+        URL.revokeObjectURL(
+          imageUrl
+        );
+
+
+        const text =
+          result.getText();
+
+
+        console.log(
+          'QR FILE TERBACA:',
+          text
+        );
+
+
+        if (!processing) {
+
+          processing = true;
+
+          processQr(text);
+
+        }
+
+
+      } catch (error) {
+
+        console.error(
+          'FILE QR ERROR:',
+          error
+        );
+
+
+        setResult(
+
+          'QR tidak dapat dibaca dari file.\n\n' +
+
+          (
+            error.message ||
+            'Format QR tidak dikenali.'
+          ),
+
+          'error'
+
+        );
+
+
+        processing = false;
+
+      }
+
+
+      input.value = '';
+
+    };
+
   </script>
+
 
   <style>
 
@@ -25,79 +765,154 @@ const API_URL ='https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcd
       box-sizing: border-box;
     }
 
+
     body {
+
       font-family: Arial, sans-serif;
+
       margin: 0;
+
       background: #f5f5f5;
+
       color: #222;
+
     }
+
 
     .container {
+
       max-width: 520px;
+
       margin: auto;
+
       padding: 18px;
+
     }
+
 
     h2 {
+
       text-align: center;
+
       margin-top: 5px;
+
     }
 
+
     label {
+
       display: block;
+
       margin-top: 15px;
+
       font-weight: bold;
+
     }
+
 
     input,
     button {
+
       width: 100%;
+
       padding: 13px;
+
       margin-top: 7px;
+
       font-size: 16px;
+
       border-radius: 6px;
+
       border: 1px solid #bbb;
+
     }
+
 
     button {
+
       cursor: pointer;
+
       background: white;
+
     }
+
 
     button:disabled {
+
       opacity: .5;
+
       cursor: not-allowed;
+
     }
+
 
     #reader {
+
       width: 100%;
+
       margin-top: 18px;
+
       background: #111;
+
       border-radius: 8px;
+
       overflow: hidden;
+
     }
+
+
+    #video {
+
+      width: 100%;
+
+      display: block;
+
+      background: #111;
+
+      border-radius: 8px;
+
+    }
+
 
     #result {
+
       margin-top: 18px;
+
       padding: 16px;
+
       background: white;
+
       border-radius: 8px;
+
       min-height: 90px;
+
       white-space: pre-wrap;
+
     }
+
 
     .success {
+
       font-weight: bold;
+
     }
+
 
     .error {
+
       font-weight: bold;
+
     }
 
+
     .small {
+
       margin-top: 12px;
+
       font-size: 13px;
+
       color: #666;
+
     }
 
   </style>
@@ -107,668 +922,83 @@ const API_URL ='https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcd
 
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <h2>Seminar Check-in</h2>
-
-
-  <label for="officer">
-    Nama Panitia
-  </label>
-
-  <input
-    id="officer"
-    type="text"
-    placeholder="Masukkan nama panitia"
-  >
+    <h2>
+      Seminar Check-in
+    </h2>
 
 
-  <button
-    id="startBtn"
-    onclick="startCamera()"
-  >
-    📷 MULAI KAMERA
-  </button>
+    <label for="officer">
+      Nama Panitia
+    </label>
 
 
-  <button
-    id="stopBtn"
-    onclick="stopCamera()"
-    disabled
-  >
-    ⛔ STOP KAMERA
-  </button>
+    <input
+      id="officer"
+      type="text"
+      placeholder="Masukkan nama panitia"
+    >
 
 
-  <div id="reader"></div>
+    <button
+      id="startBtn"
+      onclick="startCamera()"
+    >
+      📷 MULAI KAMERA
+    </button>
 
 
-  <button
-    onclick="scanFile()"
-  >
-    📁 SCAN FILE QR
-  </button>
+    <button
+      id="stopBtn"
+      onclick="stopCamera()"
+      disabled
+    >
+      ⛔ STOP KAMERA
+    </button>
 
 
-  <input
-    id="qrFile"
-    type="file"
-    accept="image/*"
-    style="display:none"
-    onchange="processFile(this)"
-  >
+    <div id="reader">
+
+      <video
+        id="video"
+        autoplay
+        muted
+        playsinline
+      ></video>
+
+    </div>
 
 
-  <div id="result">
-    Siap melakukan scan.
+    <button
+      onclick="scanFile()"
+    >
+      📁 SCAN FILE QR
+    </button>
+
+
+    <input
+      id="qrFile"
+      type="file"
+      accept="image/*"
+      style="display:none"
+      onchange="processFile(this)"
+    >
+
+
+    <div id="result">
+      Siap melakukan scan.
+    </div>
+
+
+    <div class="small">
+
+      Gunakan kamera belakang HP untuk
+      memindai QR peserta.
+
+    </div>
+
   </div>
-
-
-  <div class="small">
-    Gunakan kamera belakang HP untuk memindai QR peserta.
-  </div>
-
-</div>
-
-
-<script>
-
-/*
- * ==================================================
- * CONFIGURATION
- * ==================================================
- */
-
-const API_URL =
-  'GANTI_DENGAN_URL_EXEC_SEMINAR_CHECKIN_API';
-
-
-/*
- * ==================================================
- * GLOBAL
- * ==================================================
- */
-
-let scanner = null;
-
-let scanning = false;
-
-let processing = false;
-
-
-/*
- * ==================================================
- * UI
- * ==================================================
- */
-
-function setResult(text, type) {
-
-  const el =
-    document.getElementById('result');
-
-  el.textContent = text;
-
-  el.className =
-    type || '';
-
-}
-
-
-/*
- * ==================================================
- * START CAMERA
- * ==================================================
- */
-async function startCamera() {
-
-  if (scanning) {
-    return;
-  }
-
-  try {
-
-    if (!window.isSecureContext) {
-      throw new Error(
-        'Halaman tidak menggunakan HTTPS.'
-      );
-    }
-
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-      throw new Error(
-        'Browser tidak menyediakan akses kamera.'
-      );
-    }
-
-    setResult(
-      'Memulai kamera belakang...',
-      ''
-    );
-
-    scanner =
-      new Html5Qrcode('reader');
-
-    await scanner.start(
-
-      {
-        facingMode: 'environment'
-      },
-
-      {
-        fps: 10,
-
-        qrbox: {
-          width: 250,
-          height: 250
-        }
-      },
-
-      onScanSuccess,
-
-      onScanFailure
-
-    );
-
-    scanning = true;
-
-    document
-      .getElementById('startBtn')
-      .disabled = true;
-
-    document
-      .getElementById('stopBtn')
-      .disabled = false;
-
-    setResult(
-      'KAMERA AKTIF\n\n' +
-      'Arahkan kamera belakang ke QR peserta.',
-      'success'
-    );
-
-  } catch (error) {
-
-    console.error(
-      'CAMERA ERROR:',
-      error
-    );
-
-    let name = 'Tidak diketahui';
-    let message = 'Tidak diketahui';
-
-    if (error) {
-
-      if (error.name) {
-        name = String(error.name);
-      }
-
-      if (error.message) {
-        message = String(error.message);
-      }
-
-      if (typeof error === 'string') {
-        message = error;
-      }
-    }
-
-    setResult(
-
-      'KAMERA GAGAL DIJALANKAN\n\n' +
-
-      'Secure Context: ' +
-      window.isSecureContext +
-
-      '\n\nProtocol: ' +
-      location.protocol +
-
-      '\n\nMediaDevices: ' +
-      (!!navigator.mediaDevices) +
-
-      '\n\ngetUserMedia: ' +
-      (!!(
-        navigator.mediaDevices &&
-        navigator.mediaDevices.getUserMedia
-      )) +
-
-      '\n\nError Name: ' +
-      name +
-
-      '\n\nError Message: ' +
-      message,
-
-      'error'
-    );
-
-    scanner = null;
-    scanning = false;
-    processing = false;
-
-    document
-      .getElementById('startBtn')
-      .disabled = false;
-
-    document
-      .getElementById('stopBtn')
-      .disabled = true;
-  }
-}
-
-
-/*
- * ==================================================
- * STOP CAMERA
- * ==================================================
- */
-
-async function stopCamera() {
-
-  if (!scanner) {
-    return;
-  }
-
-
-  try {
-
-    await scanner.stop();
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-
-  try {
-
-    scanner.clear();
-
-  } catch (error) {
-
-    console.error(error);
-
-  }
-
-
-  scanner = null;
-
-  scanning = false;
-
-  processing = false;
-
-
-  document
-    .getElementById('startBtn')
-    .disabled = false;
-
-  document
-    .getElementById('stopBtn')
-    .disabled = true;
-
-
-  setResult(
-    'Kamera dihentikan.',
-    ''
-  );
-
-}
-
-
-/*
- * ==================================================
- * QR SUCCESS
- * ==================================================
- */
-
-function onScanSuccess(decodedText) {
-
-  if (processing) {
-    return;
-  }
-
-
-  processing = true;
-
-
-  processQr(
-    decodedText
-  );
-
-}
-
-
-/*
- * ==================================================
- * QR FAILURE
- * ==================================================
- */
-
-function onScanFailure(errorMessage) {
-
-  /*
-   * Tidak perlu menampilkan error.
-   *
-   * Scanner memang akan sering memanggil
-   * callback ini ketika belum menemukan QR.
-   */
-
-}
-
-
-/*
- * ==================================================
- * PROCESS QR
- * ==================================================
- */
-
-function processQr(text) {
-
-  let reg = '';
-
-  try {
-
-    const obj =
-      JSON.parse(text);
-
-    if (obj.reg) {
-      reg =
-        String(obj.reg)
-          .trim()
-          .toUpperCase();
-    }
-
-  } catch (e) {
-
-    /*
-     * Kalau QR bukan JSON,
-     * anggap isi QR langsung nomor registrasi.
-     */
-
-    reg =
-      String(text)
-        .trim()
-        .toUpperCase();
-
-  }
-
-
-  if (!reg) {
-
-    setResult(
-      'QR tidak berisi nomor registrasi.',
-      'error'
-    );
-
-    processing = false;
-
-    return;
-  }
-
-
-  sendCheckIn(
-    reg
-  );
-
-}
-
-
-/*
- * ==================================================
- * SEND CHECK-IN
- * ==================================================
- */
-
-async function sendCheckIn(reg) {
-
-  const officer =
-    document
-      .getElementById('officer')
-      .value
-      .trim() ||
-    'Panitia';
-
-
-  setResult(
-    'Memproses...\n\n' +
-    reg,
-    ''
-  );
-
-
-  try {
-
-    const response =
-      await fetch(
-
-        API_URL,
-
-        {
-
-          method: 'POST',
-
-          headers: {
-
-            'Content-Type':
-              'text/plain;charset=utf-8'
-
-          },
-
-          body:
-            JSON.stringify({
-
-              action:
-                'checkin',
-
-              reg:
-                reg,
-
-              officer:
-                officer
-
-            })
-
-        }
-
-      );
-
-
-    const text =
-      await response.text();
-
-
-    let data;
-
-    try {
-
-      data =
-        JSON.parse(text);
-
-    } catch (e) {
-
-      data = null;
-
-    }
-
-
-    if (!data) {
-
-      setResult(
-
-        'CHECK-IN TERKIRIM\n\n' +
-        'Registrasi: ' +
-        reg +
-        '\n\n' +
-        'Server tidak mengembalikan JSON.',
-
-        ''
-
-      );
-
-      return;
-    }
-
-
-    if (data.ok) {
-
-      if (data.already) {
-
-        setResult(
-
-          'SUDAH CHECK-IN\n\n' +
-          data.reg +
-          '\n' +
-          data.nama,
-
-          ''
-
-        );
-
-      } else {
-
-        setResult(
-
-          'CHECK-IN BERHASIL\n\n' +
-          data.reg +
-          '\n' +
-          data.nama,
-
-          'success'
-
-        );
-
-      }
-
-
-    } else {
-
-      setResult(
-
-        'CHECK-IN GAGAL\n\n' +
-        (data.error || 'Error tidak diketahui.'),
-
-        'error'
-
-      );
-
-    }
-
-
-  } catch (error) {
-
-    console.error(error);
-
-    setResult(
-
-      'GAGAL TERHUBUNG KE SERVER\n\n' +
-      error.name +
-      '\n' +
-      error.message,
-
-      'error'
-
-    );
-
-  }
-
-
-  /*
-   * Beri jeda supaya QR yang sama
-   * tidak langsung diproses berulang.
-   */
-
-  setTimeout(
-    () => {
-      processing = false;
-    },
-    2500
-  );
-
-}
-
-
-/*
- * ==================================================
- * FILE QR
- * ==================================================
- */
-
-function scanFile() {
-
-  document
-    .getElementById('qrFile')
-    .click();
-
-}
-
-
-async function processFile(input) {
-
-  const file =
-    input.files[0];
-
-  if (!file) {
-    return;
-  }
-
-
-  setResult(
-    'Membaca QR dari file...',
-    ''
-  );
-
-
-  const fileScanner =
-    new Html5Qrcode(
-      'reader'
-    );
-
-
-  try {
-
-    const decoded =
-      await fileScanner.scanFile(
-        file,
-        true
-      );
-
-
-    try {
-
-      await fileScanner.clear();
-
-    } catch (e) {}
-
-
-    processQr(
-      decoded
-    );
-
-
-  } catch (error) {
-
-    try {
-
-      await fileScanner.clear();
-
-    } catch (e) {}
-
-
-    setResult(
-      'QR tidak dapat dibaca dari file.',
-      'error'
-    );
-
-    processing = false;
-
-  }
-
-
-  input.value = '';
-
-}
-
-</script>
 
 </body>
 
