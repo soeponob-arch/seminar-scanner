@@ -69,196 +69,187 @@
      * START CAMERA
      * ==================================================
      */
+window.startCamera = async function() {
 
-    window.startCamera = async function() {
+  if (scanning) {
+    return;
+  }
 
-      if (scanning) {
-        return;
-      }
+  try {
 
-      try {
-
-        if (!window.isSecureContext) {
-          throw new Error(
-            'Halaman tidak menggunakan HTTPS.'
-          );
-        }
-
-        if (
-          !navigator.mediaDevices ||
-          !navigator.mediaDevices.getUserMedia
-        ) {
-          throw new Error(
-            'Browser tidak menyediakan akses kamera.'
-          );
-        }
+    setResult(
+      'Memulai kamera...',
+      ''
+    );
 
 
-        setResult(
-          'Memulai kamera belakang...',
-          ''
-        );
+    reader =
+      new BrowserMultiFormatReader();
 
 
-        reader =
-          new BrowserMultiFormatReader();
+    const devices =
+      await BrowserMultiFormatReader
+        .listVideoInputDevices();
 
 
-        const devices =
-          await BrowserMultiFormatReader.listVideoInputDevices();
+    console.log(
+      'CAMERA DEVICES:',
+      devices
+    );
 
 
-        console.log(
-          'Camera devices:',
-          devices
-        );
+    if (!devices || devices.length === 0) {
+      throw new Error(
+        'Tidak ada kamera yang ditemukan.'
+      );
+    }
 
 
-        if (
-          !devices ||
-          devices.length === 0
-        ) {
-          throw new Error(
-            'Tidak ada kamera yang ditemukan.'
-          );
-        }
+    let camera =
+      devices.find(function(device) {
+
+        return /back|rear|environment/i
+          .test(device.label);
+
+      });
 
 
-        /*
-         * Cari kamera belakang.
-         */
-
-        let camera =
-          devices.find(function(device) {
-
-            return /back|rear|environment/i
-              .test(device.label);
-
-          });
+    if (!camera) {
+      camera =
+        devices[devices.length - 1];
+    }
 
 
-        /*
-         * Kalau nama kamera tidak menunjukkan
-         * back/rear, gunakan kamera terakhir.
-         */
-
-        if (!camera) {
-          camera =
-            devices[devices.length - 1];
-        }
+    console.log(
+      'CAMERA YANG DIPILIH:',
+      camera
+    );
 
 
-        console.log(
-          'Selected camera:',
-          camera
-        );
+    setResult(
+      'KAMERA AKTIF\n\n' +
+      (camera.label || 'Kamera belakang') +
+      '\n\n' +
+      'Arahkan kamera ke QR peserta.',
+      'success'
+    );
 
 
-        setResult(
-          'KAMERA AKTIF\n\n' +
-          'Kamera: ' +
-          (camera.label || 'Kamera belakang') +
-          '\n\n' +
-          'Arahkan kamera ke QR peserta.',
-          'success'
-        );
+    controls =
+      await reader.decodeFromVideoDevice(
+
+        camera.deviceId,
+
+        'video',
+
+        function(scanResult, error) {
+
+          /*
+           * Jangan lakukan apa-apa kalau
+           * QR belum terbaca.
+           */
+
+          if (!scanResult) {
+            return;
+          }
 
 
-        controls =
-          await reader.decodeFromVideoDevice(
-            camera.deviceId,
-            'video',
-            function(scanResult, error) {
-
-              if (!scanResult) {
-                return;
-              }
+          const text =
+            scanResult.getText();
 
 
-              const text =
-                scanResult.getText();
-
-
-              console.log(
-                'QR TERBACA:',
-                text
-              );
-
-
-              /*
-               * Jangan membaca QR baru
-               * ketika QR sebelumnya masih diproses.
-               */
-
-              if (processing) {
-                return;
-              }
-
-
-              processing = true;
-
-
-              processQr(text);
-
-            }
+          console.log(
+            'QR BERHASIL DIBACA:',
+            text
           );
 
 
-        scanning = true;
+          /*
+           * Tampilkan dulu hasil mentah.
+           * Ini penting untuk memastikan
+           * kamera benar-benar membaca QR.
+           */
+
+          setResult(
+            'QR TERBACA!\n\n' +
+            text,
+            'success'
+          );
 
 
-        document
-          .getElementById('startBtn')
-          .disabled = true;
+          /*
+           * Setelah terbukti terbaca,
+           * baru proses check-in.
+           */
+
+          if (processing) {
+            return;
+          }
 
 
-        document
-          .getElementById('stopBtn')
-          .disabled = false;
+          processing = true;
 
 
-      } catch (error) {
+          processQr(text);
 
-        console.error(
-          'CAMERA ERROR:',
-          error
-        );
+        }
 
-
-        setResult(
-
-          'KAMERA GAGAL DIJALANKAN\n\n' +
-
-          'Error: ' +
-          (error.name || 'Tidak diketahui') +
-
-          '\n\n' +
-
-          (error.message || error),
-
-          'error'
-
-        );
+      );
 
 
-        reader = null;
-        controls = null;
-        scanning = false;
-        processing = false;
+    scanning = true;
 
 
-        document
-          .getElementById('startBtn')
-          .disabled = false;
+    document
+      .getElementById('startBtn')
+      .disabled = true;
 
 
-        document
-          .getElementById('stopBtn')
-          .disabled = true;
+    document
+      .getElementById('stopBtn')
+      .disabled = false;
 
-      }
 
-    };
+  } catch (error) {
+
+    console.error(error);
+
+
+    setResult(
+
+      'KAMERA GAGAL DIJALANKAN\n\n' +
+
+      'Name: ' +
+      (error.name || 'unknown') +
+
+      '\n\nMessage: ' +
+
+      (error.message || error),
+
+      'error'
+
+    );
+
+
+    reader = null;
+    controls = null;
+    scanning = false;
+    processing = false;
+
+
+    document
+      .getElementById('startBtn')
+      .disabled = false;
+
+
+    document
+      .getElementById('stopBtn')
+      .disabled = true;
+
+  }
+
+};
+    
 
 
     /*
