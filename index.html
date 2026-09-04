@@ -18,7 +18,46 @@
        ================================================== -->
 
   <script type="module">
+    /* AWAL TAMBAHAN PONO */
+window.testApi = async function() {
+  const result = document.getElementById('result');
 
+  result.textContent = 'Testing API...';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'checkin',
+        reg: 'REG-00008',
+        officer: 'TEST WEB'
+      })
+    });
+
+    const text = await response.text();
+
+    console.log('HTTP STATUS:', response.status);
+    console.log('RESPONSE:', text);
+
+    result.textContent =
+      'HTTP STATUS: ' + response.status +
+      '\n\nRESPONSE:\n' + text;
+
+  } catch (error) {
+    console.error(error);
+
+    result.textContent =
+      'API GAGAL\n\n' +
+      'Name: ' + error.name +
+      '\n\n' +
+      'Message: ' + error.message;
+  }
+};
+    /* AKHIR TAMBAHAN PONO */
+    
     import {
       BrowserMultiFormatReader
     } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
@@ -826,7 +865,7 @@
   >
     📷 MULAI KAMERA
   </button>
-
+<button onclick="testApi()">TEST API</button>
 
   <button
     id="stopBtn"
