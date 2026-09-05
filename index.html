@@ -735,6 +735,16 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 
   <style>
 /*** Awal**/
+  .camera-buttons {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.camera-buttons button {
+  flex: 1;
+  margin: 0;
+}
     .scanner-container {
   position: relative;
   width: 100%;
@@ -748,7 +758,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 .scanner-container video {
   display: block;
   width: 100%;
-  height: auto;
+  height: 260px;
   min-height: 300px;
   object-fit: cover;
 }
