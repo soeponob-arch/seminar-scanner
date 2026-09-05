@@ -734,7 +734,82 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 
 
   <style>
+/*** Awal**/
+    .scanner-container {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
 
+.scanner-container video {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 300px;
+  object-fit: cover;
+}
+
+.qr-frame {
+  position: absolute;
+  width: 65%;
+  aspect-ratio: 1 / 1;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+}
+
+.top-left {
+  top: 0;
+  left: 0;
+  border-top: 4px solid white;
+  border-left: 4px solid white;
+}
+
+.top-right {
+  top: 0;
+  right: 0;
+  border-top: 4px solid white;
+  border-right: 4px solid white;
+}
+
+.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-bottom: 4px solid white;
+  border-left: 4px solid white;
+}
+
+.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-bottom: 4px solid white;
+  border-right: 4px solid white;
+}
+
+.scanner-text {
+  position: absolute;
+  bottom: 15px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 1px 3px black;
+  pointer-events: none;
+}
+/*** Akhir**/
+    
     body {
 
       font-family: Arial, sans-serif;
@@ -879,12 +954,20 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
     zxing-test.html yang berhasil.
   -->
 
-  <video
-    id="video"
-    autoplay
-    muted
-    playsinline>
-  </video>
+<div class="scanner-container">
+  <video id="video" autoplay muted playsinline></video>
+
+  <div class="qr-frame">
+    <div class="corner top-left"></div>
+    <div class="corner top-right"></div>
+    <div class="corner bottom-left"></div>
+    <div class="corner bottom-right"></div>
+  </div>
+
+  <div class="scanner-text">
+    Arahkan QR Code ke dalam kotak
+  </div>
+</div>
 
 
   <button
