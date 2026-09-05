@@ -578,50 +578,52 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
            * Peserta sudah pernah hadir.
            */
 
-          if (data.already) {
-
-            result.textContent =
-
-              "SUDAH CHECK-IN\n\n" +
-
-              "Registrasi: " +
-              data.reg +
-
-              "\n" +
-
-              "Nama: " +
-              data.nama +
-
-              "\n\n" +
-
-              "Peserta sudah tercatat HADIR.";
-
-          }
+              if (data.already) {
+              
+                result.className = "result-box already";
+              
+                result.textContent =
+                  "SUDAH CHECK-IN\n\n" +
+              
+                  "Registrasi: " +
+                  data.reg +
+              
+                  "\n" +
+              
+                  "Nama: " +
+                  data.nama +
+              
+                  "\n\n" +
+              
+                  "Peserta sudah tercatat HADIR.";
+              
+              }
 
 
           /*
            * Check-in baru.
            */
 
-          else {
-
-            result.textContent =
-
-              "CHECK-IN BERHASIL\n\n" +
-
-              "Registrasi: " +
-              data.reg +
-
-              "\n" +
-
-              "Nama: " +
-              data.nama +
-
-              "\n\n" +
-
-              "STATUS: HADIR";
-
-          }
+            else {
+            
+              result.className = "result-box success";
+            
+              result.textContent =
+                "CHECK-IN BERHASIL\n\n" +
+            
+                "Registrasi: " +
+                data.reg +
+            
+                "\n" +
+            
+                "Nama: " +
+                data.nama +
+            
+                "\n\n" +
+            
+                "STATUS: HADIR";
+            
+            }
 
         }
 
@@ -629,19 +631,18 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
         /*
          * API mengatakan gagal.
          */
-
-        else {
-
-          result.textContent =
-
-            "CHECK-IN GAGAL\n\n" +
-
-            (
-              data.error ||
-              "Error tidak diketahui."
-            );
-
-        }
+      else {
+      
+        result.className = "result-box error";
+      
+        result.textContent =
+          "CHECK-IN GAGAL\n\n" +
+          (
+            data.error ||
+            "Error tidak diketahui."
+          );
+      
+      }
 
 
       } catch (error) {
@@ -917,7 +918,33 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
       min-height: 60px;
 
     }
+.result-box {
+  white-space: pre-wrap;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  min-height: 60px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
 
+.result-box.success {
+  background: #d9f7df;
+  border: 2px solid #28a745;
+}
+
+.result-box.already {
+  background: #fff3cd;
+  border: 2px solid #e0a800;
+}
+
+.result-box.error {
+  background: #f8d7da;
+  border: 2px solid #dc3545;
+}
+    
   </style>
 
 </head>
