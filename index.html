@@ -191,46 +191,30 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 
             function (scanResult, error) {
 
-              if (scanResult) {
+ /*******
+if (scanResult) {
 
+  if (processing) {
+    return;
+                }
+              
                 const text =
                   scanResult.getText();
-
-
+              
                 console.log(
                   "QR BERHASIL:",
                   text
                 );
-
-
-                /*
-                 * Tampilkan Status pembacaan QR
-                 */
-
-                  result.className = "result-box scanning";
-                  result.textContent =
-                    "QR TERBACA\n\n" +
-                    "Memeriksa data peserta...";
-
-
-                /*
-                 * Jangan kirim QR berulang-ulang.
-                 */
-
-                if (processing) {
-                  return;
-                }
-
-
+              
                 processing = true;
-
-
-                /*
-                 * Proses nomor registrasi.
-                 */
-
+              
+                result.className = "result-box scanning";
+                result.textContent =
+                  "QR TERBACA\n\n" +
+                  "Memeriksa data peserta...";
+              
                 processQr(text);
-
+              
               }
 
             }
@@ -674,15 +658,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
        * tidak dikirim berkali-kali.
        */
 
-      setTimeout(
-        function () {
-
           processing = false;
-
-        },
-        3000
-      );
-
+   
     }
 
 
