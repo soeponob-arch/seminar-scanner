@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Seminar Check-in</title>
+
+
+  <!-- ==================================================
+       ZXing
+       ================================================== -->
+
+  <script type="module">
+    /* AWAL TAMBAHAN PONO */
+window.testApi = async function() {
+  const result = document.getElementById('result');
+
+  result.textContent = 'Testing API...';
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'checkin',
+        reg: 'REG-00008',
+        officer: 'TEST WEB'
+      })
+    });
+
+    const text = await response.text();
+
+    console.log('HTTP STATUS:', response.status);
+    console.log('RESPONSE:', text);
+
+    result.textContent =
+      'HTTP STATUS: ' + response.status +
+      '\n\nRESPONSE:\n' + text;
+
+  } catch (error) {
+    console.error(error);
+
+    result.textContent =
+      'API GAGAL\n\n' +
+      'Name: ' + error.name +
+      '\n\n' +
+      'Message: ' + error.message;
+  }
+};
+    /* AKHIR TAMBAHAN PONO */
+    
+    import {
+      BrowserMultiFormatReader
+    } from "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/+esm";
+
+
+    /*
+     * ==================================================
+     * API
+     * ==================================================
+     */
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapcdn5ETdrkr1FldK_Q-9eRhzFUBDnMhhwrz7u-ey1S_LQSpg/exec';
+
+    /*
+     * ==================================================
+     * GLOBAL
+     * ==================================================
+     */
+
+    let reader = null;
+
+    let controls = null;
+
+    let processing = false;
+
+
+    /*
+     * ==================================================
+     * START CAMERA
+     * ==================================================
+     */
+
+    window.startCamera = async function () {
+
+      const result =
+        document.getElementById("result");
+
+
+      try {
+
+        result.textContent =
+          "Memulai kamera...";
+
+
+        /*
+         * INI SENGAJA SAMA DENGAN
+         * zxing-test.html YANG SUDAH BERHASIL.
+         */
+
+        reader =
+          new BrowserMultiFormatReader();
+
+
+        const devices =
+          await BrowserMultiFormatReader
+            .listVideoInputDevices();
+
+
+        console.log(
+          "CAMERA DEVICES:",
+          devices
+        );
+
+
+        if (
+          !devices ||
+          devices.length === 0
+        ) {
+
+          throw new Error(
+            "Tidak ada kamera ditemukan."
+          );
+
+        }
+
+
+        /*
+         * Cari kamera belakang.
+         */
+
+        let camera =
+          devices.find(function (device) {
+
+            return /back|rear|environment/i
+              .test(device.label);
+
+          });
+
+
+        /*
+         * Jika tidak ditemukan,
+         * gunakan kamera terakhir.
+         */
+
+        if (!camera) {
+
+          camera =
+            devices[devices.length - 1];
+
+        }
+
+
+        console.log(
+          "CAMERA YANG DIPILIH:",
+          camera
+        );
+
+
+        result.textContent =
+
+          "KAMERA AKTIF\n\n" +
+
+          camera.label +
+
+          "\n\n" +
+
+          "Arahkan kamera ke QR peserta.";
+
+
+        /*
+         * INI JUGA SENGAJA SAMA DENGAN
+         * zxing-test.html.
+         */
+
+        controls =
+          await reader.decodeFromVideoDevice(
+
+            camera.deviceId,
+
+            "video",
+
+            function (scanResult, error) {
+
+              if (scanResult) {
+
+                const text =
+                  scanResult.getText();
+
+
+                console.log(
+                  "QR BERHASIL:",
+                  text
+                );
+
+
+                /*
+                 * Tampilkan Status pembacaan QR
+                 */
+
+                  result.className = "result-box scanning";
+                  result.textContent =
+                    "QR TERBACA\n\n" +
+                    "Memeriksa data peserta...";
+
+
+                /*
+                 * Jangan kirim QR berulang-ulang.
+                 */
+
+                if (processing) {
+                  return;
+                }
+
+
+                processing = true;
+
+
+                /*
+                 * Proses nomor registrasi.
+                 */
+
+                processQr(text);
+
+              }
+
+            }
+
+          );
+
+
+        document
+          .getElementById("startBtn")
+          .disabled = true;
+
+
+        document
+          .getElementById("stopBtn")
+          .disabled = false;
+
+
+      } catch (error) {
+
+        console.error(error);
+
+
+        result.textContent =
+
+          "GAGAL\n\n" +
+
+          "Name: " +
+
+          (
+            error.name ||
+            "unknown"
+          ) +
+
+          "\n\nMessage: " +
+
+          (
+            error.message ||
+            error
+          );
+
+
+        reader = null;
+
+        controls = null;
+
+        processing = false;
+
+
+        document
+          .getElementById("startBtn")
+          .disabled = false;
+
+
+        document
+          .getElementById("stopBtn")
+          .disabled = true;
+
+      }
+
+    };
+
+
+    /*
+     * ==================================================
+     * STOP CAMERA
+     * ==================================================
+     */
+
+    window.stopCamera = function () {
+
+      try {
+
+        if (controls) {
+
+          controls.stop();
+
+          controls = null;
+
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+
+      try {
+
+        if (reader) {
+
+          reader.reset();
+
+          reader = null;
+
+        }
+
+      } catch (error) {
+
+        console.error(error);
+
+      }
+
+
+      processing = false;
+
+
+      document
+        .getElementById("startBtn")
+        .disabled = false;
+
+
+      document
+        .getElementById("stopBtn")
+        .disabled = true;
+
+
+      document
+        .getElementById("result")
+        .textContent =
+          "Scanner dihentikan.";
+
+    };
+
+
+    /*
+     * ==================================================
+     * PROCESS QR
+     * ==================================================
+     */
+
+    function processQr(text) {
+
+      console.log(
+        "ISI QR:",
+        text
+      );
+
+
+      let reg = "";
+
+
+      /*
+       * QR dari sistem kita berbentuk JSON.
+       */
+
+      try {
+
+        const obj =
+          JSON.parse(text);
+
+
+        if (obj.reg) {
+
+          reg =
+            String(obj.reg)
+              .trim()
+              .toUpperCase();
+
+        }
+
+      } catch (error) {
+
+        /*
+         * Kalau QR hanya berisi
+         * REG-xxxxx langsung.
+         */
+
+        reg =
+          String(text)
+            .trim()
+            .toUpperCase();
+
+      }
+
+
+      console.log(
+        "NOMOR REGISTRASI:",
+        reg
+      );
+
+
+      if (!reg) {
+
+        document
+          .getElementById("result")
+          .textContent =
+
+            "QR TERBACA,\n" +
+            "tetapi nomor registrasi tidak ditemukan.";
+
+
+        processing = false;
+
+        return;
+
+      }
+
+
+      /*
+       * Kirim ke API.
+       */
+
+      sendCheckIn(reg);
+
+    }
+
+
+    /*
+     * ==================================================
+     * SEND CHECK-IN
+     * ==================================================
+     */
+
+    async function sendCheckIn(reg) {
+
+      const officer =
+        document
+          .getElementById("officer")
+          .value
+          .trim() ||
+        "Panitia";
+
+
+      const result =
+        document.getElementById("result");
+
+
+      result.textContent =
+
+        "QR TERBACA!\n\n" +
+
+        "Registrasi: " +
+        reg +
+
+        "\n\n" +
+
+        "Mengirim ke server...";
+
+
+      try {
+
+        console.log(
+          "KIRIM API:",
+          {
+            action: "checkin",
+            reg: reg,
+            officer: officer
+          }
+        );
+
+
+        const response =
+          await fetch(
+
+            API_URL,
+
+            {
+
+              method: "POST",
+
+              headers: {
+
+                "Content-Type":
+                  "text/plain;charset=utf-8"
+
+              },
+
+              body:
+                JSON.stringify({
+
+                  action: "checkin",
+
+                  reg: reg,
+
+                  officer: officer
+
+                })
+
+            }
+
+          );
+
+
+        const text =
+          await response.text();
+
+
+        console.log(
+          "RESPONSE API:",
+          text
+        );
+
+
+        let data = null;
+
+
+        try {
+
+          data =
+            JSON.parse(text);
+
+        } catch (error) {
+
+          console.error(
+            "Response bukan JSON:",
+            error
+          );
+
+        }
+
+
+        /*
+         * Jika server berhasil dipanggil
+         * tetapi response JSON tidak terbaca.
+         */
+
+        if (!data) {
+
+          result.textContent =
+
+            "CHECK-IN TERKIRIM\n\n" +
+
+            "Registrasi: " +
+            reg +
+
+            "\n\n" +
+
+            "Silakan cek Sheet Peserta.";
+
+          return;
+
+        }
+
+
+        /*
+         * API mengatakan berhasil.
+         */
+
+        if (data.ok) {
+
+
+          /*
+           * Peserta sudah pernah hadir.
+           */
+
+              if (data.already) {
+              
+                result.className = "result-box already";
+              
+                result.textContent =
+                  "SUDAH CHECK-IN\n\n" +
+              
+                  "Registrasi: " +
+                  data.reg +
+              
+                  "\n" +
+              
+                  "Nama: " +
+                  data.nama +
+              
+                  "\n\n" +
+              
+               "STATUS: HADIR";
+              
+              }
+
+
+          /*
+           * Check-in baru.
+           */
+
+            else {
+            
+              result.className = "result-box success";
+            
+              result.textContent =
+                "CHECK-IN BERHASIL\n\n" +
+            
+                "Registrasi: " +
+                data.reg +
+            
+                "\n" +
+            
+                "Nama: " +
+                data.nama +
+            
+                "\n\n" +
+            
+                "STATUS: HADIR";
+            
+            }
+
+        }
+
+
+        /*
+         * API mengatakan gagal.
+         */
+      else {
+      
+        result.className = "result-box error";
+      
+        result.textContent =
+          "CHECK-IN GAGAL\n\n" +
+          data.error + "\n\n" +
+          "STATUS: TIDAK TERDAFTAR";
+      
+      }
+
+
+      } catch (error) {
+
+        console.error(
+          "API ERROR:",
+          error
+        );
+
+
+        result.textContent =
+
+          "QR BERHASIL DIBACA\n\n" +
+
+          "Registrasi: " +
+          reg +
+
+          "\n\n" +
+
+          "Tetapi gagal menghubungi API.\n\n" +
+
+          (
+            error.message ||
+            error
+          );
+
+      }
+
+
+      /*
+       * Beri jeda supaya QR yang sama
+       * tidak dikirim berkali-kali.
+       */
+
+      setTimeout(
+        function () {
+
+          processing = false;
+
+        },
+        3000
+      );
+
+    }
+
+
+    /*
+     * ==================================================
+     * SCAN FILE
+     * ==================================================
+     *
+     * Untuk sementara tombol ini kita matikan
+     * dari alur utama karena fokus kita adalah
+     * memastikan kamera + ZXing + API.
+     */
+
+    window.scanFile = function () {
+
+      document
+        .getElementById("qrFile")
+        .click();
+
+    };
+
+
+    window.processFile = async function (input) {
+
+      const file =
+        input.files[0];
+
+
+      if (!file) {
+        return;
+      }
+
+
+      const result =
+        document.getElementById("result");
+
+
+      result.textContent =
+        "Scan file QR belum kita aktifkan pada tahap ini.";
+
+
+      input.value = "";
+
+    };
+
+  </script>
+
+
+  <style>
+/*** Awal**/
+  .camera-buttons {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.camera-buttons button {
+  flex: 1;
+  margin: 0;
+}
+    .scanner-container {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #000;
+}
+
+.scanner-container video {
+  display: block;
+  width: 100%;
+  height: 260px;
+  min-height: 300px;
+  object-fit: cover;
+}
+
+.qr-frame {
+  position: absolute;
+  width: 65%;
+  aspect-ratio: 1 / 1;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.corner {
+  position: absolute;
+  width: 35px;
+  height: 35px;
+}
+
+.top-left {
+  top: 0;
+  left: 0;
+  border-top: 4px solid white;
+  border-left: 4px solid white;
+}
+
+.top-right {
+  top: 0;
+  right: 0;
+  border-top: 4px solid white;
+  border-right: 4px solid white;
+}
+
+.bottom-left {
+  bottom: 0;
+  left: 0;
+  border-bottom: 4px solid white;
+  border-left: 4px solid white;
+}
+
+.bottom-right {
+  bottom: 0;
+  right: 0;
+  border-bottom: 4px solid white;
+  border-right: 4px solid white;
+}
+
+.scanner-text {
+  position: absolute;
+  bottom: 15px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: white;
+  font-size: 14px;
+  text-shadow: 0 1px 3px black;
+  pointer-events: none;
+}
+/*** Akhir**/
+    
+    body {
+
+      font-family: Arial, sans-serif;
+
+      max-width: 600px;
+
+      margin: 20px auto;
+
+      padding: 15px;
+
+      background: #f5f5f5;
+
+    }
+
+
+    h2 {
+
+      text-align: center;
+
+    }
+
+
+    label {
+
+      display: block;
+
+      margin-top: 15px;
+
+      font-weight: bold;
+
+    }
+
+
+    input,
+    button {
+
+      width: 100%;
+
+      padding: 13px;
+
+      margin-top: 7px;
+
+      font-size: 16px;
+
+      border-radius: 6px;
+
+      border: 1px solid #bbb;
+
+      box-sizing: border-box;
+
+    }
+
+
+    button {
+
+      cursor: pointer;
+
+      background: white;
+
+    }
+
+
+    button:disabled {
+
+      opacity: .5;
+
+    }
+
+
+    #video {
+
+      width: 100%;
+
+      margin-top: 18px;
+
+      background: black;
+
+      border-radius: 8px;
+
+    }
+
+
+.result-box {
+  white-space: pre-wrap;
+  margin-top: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  min-height: 70px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  box-sizing: border-box;
+  border: 3px solid #999;
+  background: #ffffff;
+}
+
+.result-box.success {
+  background: #e8f7ec;
+  border: 3px solid #28a745;
+  color: #155724;
+}
+
+.result-box.already {
+  background: #fff8df;
+  border: 3px solid #e0a800;
+  color: #856404;
+}
+
+.result-box.error {
+  background: #fde8e8;
+  border: 3px solid #dc3545;
+  color: #721c24;
+}
+
+.result-box.scanning {
+  background: #eef5ff;
+  border: 3px solid #007bff;
+  color: #004085;
+}
+.result-box {
+  white-space: pre-wrap;
+  margin-top: 10px;
+  padding: 14px;
+  border-radius: 10px;
+  min-height: 60px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.result-box.success {
+  background: #d9f7df;
+  border: 2px solid #28a745;
+}
+
+.result-box.already {
+  background: #fff3cd;
+  border: 2px solid #e0a800;
+}
+
+.result-box.error {
+  background: #f8d7da;
+  border: 2px solid #dc3545;
+}
+    
+  </style>
+
+</head>
+
+
+<body>
+
+  <h2>
+    Seminar Check-in
+  </h2>
+
+
+  <label for="officer">
+    Nama Panitia
+  </label>
+
+
+  <input
+    id="officer"
+    type="text"
+    placeholder="Masukkan nama panitia"
+  >
+
+<div class="camera-buttons">
+  <button
+    id="startBtn"
+    onclick="startCamera()"
+  >
+    📷 MULAI KAMERA
+  </button>
+
+  <button
+    id="stopBtn"
+    onclick="stopCamera()"
+    disabled
+  >
+    ⛔ STOP KAMERA
+  </button>
+</div>
+
+  <!--
+    Video dibuat persis seperti
+    zxing-test.html yang berhasil.
+  -->
+
+<div class="scanner-container">
+  <video id="video" autoplay muted playsinline></video>
+
+  <div class="qr-frame">
+    <div class="corner top-left"></div>
+    <div class="corner top-right"></div>
+    <div class="corner bottom-left"></div>
+    <div class="corner bottom-right"></div>
+  </div>
+
+  <div class="scanner-text">
+    Arahkan QR Code ke dalam kotak
+  </div>
+</div>
+
+
+  <button
+    onclick="scanFile()"
+  >
+    📁 SCAN FILE QR
+  </button>
+
+
+  <input
+    id="qrFile"
+    type="file"
+    accept="image/*"
+    style="display:none"
+    onchange="processFile(this)"
+  >
+
+<div id="result" class="result-box">Siap melakukan scan.</div>
+  <p>
+    Gunakan kamera belakang HP untuk
+    memindai QR peserta.
+  </p>
+
+</body>
+
+</html>
