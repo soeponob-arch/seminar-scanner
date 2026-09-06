@@ -204,14 +204,13 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 
 
                 /*
-                 * Tampilkan dulu isi QR.
+                 * Tampilkan Status pembacaan QR
                  */
 
-                result.textContent =
-
-                  "QR TERBACA!\n\n" +
-
-                  text;
+                  result.className = "result-box scanning";
+                  result.textContent =
+                    "QR TERBACA\n\n" +
+                    "Memeriksa data peserta...";
 
 
                 /*
@@ -595,7 +594,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
               
                   "\n\n" +
               
-                  "Peserta sudah tercatat HADIR.";
+               "STATUS: HADIR";
               
               }
 
@@ -637,10 +636,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
       
         result.textContent =
           "CHECK-IN GAGAL\n\n" +
-          (
-            data.error ||
-            "Error tidak diketahui."
-          );
+          data.error + "\n\n" +
+          "STATUS: TIDAK TERDAFTAR";
       
       }
 
@@ -903,21 +900,44 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
     }
 
 
-    #result {
+.result-box {
+  white-space: pre-wrap;
+  margin-top: 10px;
+  padding: 16px;
+  border-radius: 12px;
+  min-height: 70px;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  box-sizing: border-box;
+  border: 3px solid #999;
+  background: #ffffff;
+}
 
-      white-space: pre-wrap;
+.result-box.success {
+  background: #e8f7ec;
+  border: 3px solid #28a745;
+  color: #155724;
+}
 
-      margin-top: 10px;
+.result-box.already {
+  background: #fff8df;
+  border: 3px solid #e0a800;
+  color: #856404;
+}
 
-      padding: 12px;
+.result-box.error {
+  background: #fde8e8;
+  border: 3px solid #dc3545;
+  color: #721c24;
+}
 
-      background: white;
-
-      border-radius: 8px;
-
-      min-height: 60px;
-
-    }
+.result-box.scanning {
+  background: #eef5ff;
+  border: 3px solid #007bff;
+  color: #004085;
+}
 .result-box {
   white-space: pre-wrap;
   margin-top: 10px;
@@ -1021,12 +1041,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
     onchange="processFile(this)"
   >
 
-
-  <div id="result">
-    Siap melakukan scan.
-  </div>
-
-
+<div id="result" class="result-box">Siap melakukan scan.</div>
   <p>
     Gunakan kamera belakang HP untuk
     memindai QR peserta.
