@@ -164,19 +164,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
           "CAMERA YANG DIPILIH:",
           camera
         );
-
-
+        result.className = "result-box";
+        
         result.textContent =
-
-          "KAMERA AKTIF\n\n" +
-
-          camera.label +
-
-          "\n\n" +
-
-          "Arahkan kamera ke QR peserta.";
-
-
+          "SCANNER SIAP\n\n" +
+          "Arahkan QR Code ke dalam kotak.";
+       
         /*
          * INI JUGA SENGAJA SAMA DENGAN
          * zxing-test.html.
@@ -656,7 +649,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
           error
         );
 
-
+        result.className = "result-box error";
         result.textContent =
 
           "QR BERHASIL DIBACA\n\n" +
@@ -891,7 +884,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 
     }
 
-
 .result-box {
   white-space: pre-wrap;
   margin-top: 10px;
@@ -930,31 +922,12 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
   border: 3px solid #007bff;
   color: #004085;
 }
-.result-box {
-  white-space: pre-wrap;
-  margin-top: 10px;
-  padding: 14px;
-  border-radius: 10px;
-  min-height: 60px;
-  text-align: center;
-  font-size: 16px;
-  line-height: 1.5;
-  box-sizing: border-box;
-}
 
-.result-box.success {
-  background: #d9f7df;
-  border: 2px solid #28a745;
-}
 
-.result-box.already {
-  background: #fff3cd;
-  border: 2px solid #e0a800;
-}
-
-.result-box.error {
-  background: #f8d7da;
-  border: 2px solid #dc3545;
+.result-box.scanning {
+  background: #eef5ff;
+  border: 3px solid #007bff;
+  color: #004085;
 }
     
   </style>
