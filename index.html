@@ -337,6 +337,23 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
 
     };
 
+    function formatCheckInTime(time) {
+  if (!time) {
+    return "-";
+  }
+
+  const date = new Date(time);
+
+  if (isNaN(date.getTime())) {
+    return String(time);
+  }
+
+  return date.toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
 
     /*
      * ==================================================
@@ -560,23 +577,28 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
            */
 
               if (data.already) {
-              
+
                 result.className = "result-box already";
               
                 result.textContent =
                   "SUDAH CHECK-IN\n\n" +
-              
-                  "Registrasi: " +
-                  data.reg +
-              
-                  "\n" +
               
                   "Nama: " +
                   data.nama +
               
                   "\n\n" +
               
-               "STATUS: HADIR";
+                  "Registrasi: " +
+                  data.reg +
+              
+                  "\n" +
+              
+                  "Check-in: " +
+                  formatCheckInTime(data.time) +
+              
+                  "\n\n" +
+              
+                  "STATUS: HADIR";
               
               }
 
@@ -584,28 +606,31 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
           /*
            * Check-in baru.
            */
-
-            else {
-            
-              result.className = "result-box success";
-            
-              result.textContent =
-                "CHECK-IN BERHASIL\n\n" +
-            
-                "Registrasi: " +
-                data.reg +
-            
-                "\n" +
-            
-                "Nama: " +
-                data.nama +
-            
-                "\n\n" +
-            
-                "STATUS: HADIR";
-            
-            }
-
+          else {
+          
+            result.className = "result-box success";
+          
+            result.textContent =
+              "CHECK-IN BERHASIL\n\n" +
+          
+              "Nama: " +
+              data.nama +
+          
+              "\n\n" +
+          
+              "Registrasi: " +
+              data.reg +
+          
+              "\n" +
+          
+              "Waktu: " +
+              formatCheckInTime(data.time) +
+          
+              "\n\n" +
+          
+              "STATUS: HADIR";
+          
+          }
         }
 
 
