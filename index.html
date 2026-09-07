@@ -421,7 +421,35 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
             beep(220, 0.35, 0.08);
           }, 180);
         }
-        
+        function vibrateSuccess() {
+                  try {
+                    if (navigator.vibrate) {
+                      navigator.vibrate([100, 60, 160]);
+                    }
+                  } catch (error) {
+                    console.error("Vibration gagal:", error);
+                  }
+                }
+                
+                function vibrateAlready() {
+                  try {
+                    if (navigator.vibrate) {
+                      navigator.vibrate([180]);
+                    }
+                  } catch (error) {
+                    console.error("Vibration gagal:", error);
+                  }
+                }
+                
+                function vibrateError() {
+                  try {
+                    if (navigator.vibrate) {
+                      navigator.vibrate([250, 80, 250]);
+                    }
+                  } catch (error) {
+                    console.error("Vibration gagal:", error);
+                  }
+                }
 
 
     
@@ -670,6 +698,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
               
                   "STATUS: HADIR";
               beepAlready();
+              vibrateAlready(); 
               }
 
 
@@ -699,7 +728,8 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
               "\n\n" +
           
               "STATUS: HADIR";
-           beepSuccess();
+            beepSuccess();
+            vibrateSuccess();
           }
         }
 
@@ -716,6 +746,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbynFvk-D1N4EUKLCMZvlapc
           data.error + "\n\n" +
           "STATUS: TIDAK TERDAFTAR";
         beepError();
+        vibrateError();
       }
 
 
